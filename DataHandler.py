@@ -12,6 +12,8 @@ class DataHandler(object):
         self._data_frame_original = data_frame
         self._data_frame_last_update = None
 
+        self._tags = {"gives_good_feedback", "caring", "respected", "participation_matters", "clear_grading_criteria", "skip_class", "amazing_lectures", "inspirational", "tough_grader", "hilarious", "get_ready_to_read", "lots_of_homework", "accessible_outside_class", "lecture_heavy", "extra_credit", "graded_by_few_things", "group_projects", "test_heavy", "so_many_papers", "beware_of_pop_quizzes", "IsCourseOnline"}
+
         self.preprocess_data()
 
     @classmethod
