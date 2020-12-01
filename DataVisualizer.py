@@ -122,9 +122,6 @@ class DataVisualizer(object):
                             html.H3(children="Select Designated Professor"),
                             dcc.Dropdown(
                                 id="student_designated_professor",
-                                options=[{"label": element, "value": element} for element in
-                                         self._data_handler.get_professor_list],
-                                value=self._data_handler.get_professor_list[0],
                                 multi=False
                             ),
 
@@ -189,6 +186,19 @@ class DataVisualizer(object):
                                 id="screen200",
                                 children=[
                                     dcc.Dropdown(
+                                        id="prof_school_list",
+                                        options=[{"label": element, "value": element} for element in
+                                                 self._data_handler.get_school_list],
+                                        value=self._data_handler.get_school_list[0],
+                                        multi=False
+                                    ),
+
+                                    dcc.Dropdown(
+                                        id="prof_department_list",
+                                        multi=False
+                                    ),
+
+                                    dcc.Dropdown(
                                         id="prof_designated_professor",
                                         multi=False
                                     ),
@@ -238,14 +248,14 @@ class DataVisualizer(object):
             dash.dependencies.Output("student_department_list", "options"),
             dash.dependencies.Output("student_department_list", "value"),
             [dash.dependencies.Input("student_school_list", "value")]
-        )(self._update_student_department_list)
+        )(self._update_student_prof_department_list)
 
         self._app.callback(
             dash.dependencies.Output("student_designated_professor", "options"),
             dash.dependencies.Output("student_designated_professor", "value"),
             [dash.dependencies.Input("student_school_list", "value"),
              dash.dependencies.Input("student_department_list", "value")]
-        )(self._update_student_designated_professor_name)
+        )(self._update_student_prof_designated_professor_name)
 
         self._app.callback(
             dash.dependencies.Output("student_designated_professor_name", "children"),
@@ -271,7 +281,28 @@ class DataVisualizer(object):
              dash.dependencies.Input("student_top_unwilling_attributes", "value")]
         )(self._update_bar_matched_professors)
 
-    def _update_student_department_list(self, school_name):
+        self._app.callback(
+            dash.dependencies.Output("prof_department_list", "options"),
+            dash.dependencies.Output("prof_department_list", "value"),
+            [dash.dependencies.Input("prof_school_list", "value")]
+        )(self._update_student_prof_department_list)
+
+        self._app.callback(
+            dash.dependencies.Output("prof_designated_professor", "options"),
+            dash.dependencies.Output("prof_designated_professor", "value"),
+            [dash.dependencies.Input("prof_school_list", "value"),
+             dash.dependencies.Input("prof_department_list", "value")]
+        )(self._update_student_prof_designated_professor_name)
+
+        self._app.callback(
+            dash.dependencies.Output("prof_top_willing_attributes", "options"),
+            dash.dependencies.Output("prof_top_willing_attributes", "value"),
+            [dash.dependencies.Input("prof_school_list", "value"),
+             dash.dependencies.Input("prof_department_list", "value"),
+             dash.dependencies.Input("prof_designated_professor", "value")]
+        )(self._update_prof_top_willing_attributes)
+
+    def _update_student_prof_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
         department_list = df[df["school_name"] == school_name]["department_name"].unique()
         option_list = [{"label": element, "value": element} for element in department_list]
@@ -279,7 +310,7 @@ class DataVisualizer(object):
 
         return option_list, value
 
-    def _update_student_designated_professor_name(self, school_name, department_name):
+    def _update_student_prof_designated_professor_name(self, school_name, department_name):
         df = self._data_handler.get_data_frame_original
         professor_list = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)][
             "professor_name"].unique()
@@ -295,14 +326,16 @@ class DataVisualizer(object):
 
         return professor_name, df.loc[professor_name, "student_star"], df.loc[professor_name, "student_difficult"]
 
-    def _update_screen11_top_match_score(self, school_name, department_name, professor_name, willing_list, unwilling_list):
+    def _update_screen11_top_match_score(self, school_name, department_name, professor_name, willing_list,
+                                         unwilling_list):
         professor_id = school_name + department_name + professor_name
         return self._get_matched_score(professor_id, willing_list, unwilling_list)
 
     def _update_bar_matched_professors(self, willing_list, unwilling_list):
         df = self._data_handler.get_data_frame_original
         df = df[["professor_id", "professor_name"]].drop_duplicates()
-        df["matched_score"] = df.apply(lambda x: self._get_matched_score(x["professor_id"], willing_list, unwilling_list), axis=1)
+        df["matched_score"] = df.apply(
+            lambda x: self._get_matched_score(x["professor_id"], willing_list, unwilling_list), axis=1)
 
         df = df.sort_values(by="matched_score", ascending=False)
 
@@ -316,7 +349,7 @@ class DataVisualizer(object):
     def _get_matched_score(self, professor_id, willing_list, unwilling_list):
         df = self._data_handler.get_data_frame_original
         df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
-        df = df["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
+        df = df.loc[[professor_id]]["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
         professor_score_dict = dict(zip(df.loc[professor_id][0], df.loc[professor_id][1].astype("int32")))
 
         max_attribute_score = max(len(willing_list), len(unwilling_list))
@@ -332,9 +365,22 @@ class DataVisualizer(object):
 
         professor_score_list = sorted(professor_score_dict.values(), reverse=True)
         willing_score_list = range(max_attribute_score, max_attribute_score - len(willing_list), -1)
-        max_score = sum([willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in range(len(willing_score_list))])
+        max_score = sum(
+            [willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in
+             range(len(willing_score_list))])
 
         return actual_score / max_score
+
+    def _update_prof_top_willing_attributes(self, school_name, department_name, professor_name):
+        professor_id = school_name + department_name + professor_name
+
+        df = self._data_handler.get_data_frame_original
+        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
+        df = df.loc[[professor_id]]["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
+        value_list = list(df[0])
+        option_list = [{"label": element, "value": element} for element in self._data_handler.get_attribute_list]
+
+        return option_list, value_list
 
     def run_server(self):
         self._app.run_server(debug=True)
