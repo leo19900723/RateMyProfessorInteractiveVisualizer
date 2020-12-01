@@ -81,6 +81,13 @@ div {
 #screen11_top {
     flex-grow: 1;
     flex-basis: 0;
+
+    flex-direction: row;
+}
+
+#screen11_top_overview, #screen11_top_match_score {
+    flex-grow: 1;
+    flex-basis: 0;
 }
 
 #screen11_bottom {

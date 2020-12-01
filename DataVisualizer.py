@@ -50,14 +50,14 @@ class DataVisualizer(object):
         external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
         mapbox_info_file_path = "assets/mapbox_info.json"
 
-        with open(mapbox_info_file_path) as mapbox_info_file:
-            mapbox_info_dict = json.load(mapbox_info_file)
+        # with open(mapbox_info_file_path) as mapbox_info_file:
+        #     mapbox_info_dict = json.load(mapbox_info_file)
 
         return DataVisualizer(
             data_handler=DataHandler.construct_from_csv(path),
             app=dash.Dash(__name__, external_stylesheets=external_stylesheets),
-            mapbox_token=mapbox_info_dict["mapbox_token"],
-            mapbox_style=mapbox_info_dict["mapbox_style"]["UCDavis_289H_Project2_Dark"]
+            mapbox_token=None,
+            mapbox_style=None
         )
 
     def set_layout(self):
@@ -105,6 +105,9 @@ class DataVisualizer(object):
                         children=[
                             dcc.Dropdown(
                                 id="student_school_list",
+                                options=[{"label": element, "value": element} for element in
+                                         self._data_handler.get_school_list],
+                                value=self._data_handler.get_school_list[0],
                                 multi=False
                             ),
 
@@ -115,16 +118,23 @@ class DataVisualizer(object):
 
                             dcc.Dropdown(
                                 id="student_designated_professor",
+                                options=[{"label": element, "value": element} for element in
+                                         self._data_handler.get_professor_list],
+                                value=self._data_handler.get_professor_list[0],
                                 multi=False
                             ),
 
                             dcc.Dropdown(
                                 id="student_top_willing_attributes",
+                                options=[{"label": element, "value": element} for element in
+                                         self._data_handler.get_attribute_list],
                                 multi=True
                             ),
 
                             dcc.Dropdown(
                                 id="student_top_unwilling_attributes",
+                                options=[{"label": element, "value": element} for element in
+                                         self._data_handler.get_attribute_list],
                                 multi=True
                             )
                         ]
@@ -135,7 +145,17 @@ class DataVisualizer(object):
                         children=[
                             html.Div(
                                 id="screen11_top",
-                                children=[]
+                                children=[
+                                    html.Div(
+                                        id="screen11_top_overview",
+                                        children=[
+                                            html.Div(id="student_designated_professor_name"),
+                                            html.Div(id="student_designated_professor_score"),
+                                            html.Div(id="student_designated_professor_difficulty")
+                                        ]
+                                    ),
+                                    html.Div(id="screen11_top_match_score"),
+                                ]
                             ),
 
                             html.Div(
@@ -206,11 +226,60 @@ class DataVisualizer(object):
         ])
 
     def callback(self):
-        return
+
+        self._app.callback(
+            dash.dependencies.Output("student_department_list", "options"),
+            dash.dependencies.Output("student_department_list", "value"),
+            [dash.dependencies.Input("student_school_list", "value")]
+        )(self._update_student_department_list)
+
+        self._app.callback(
+            dash.dependencies.Output("student_designated_professor", "options"),
+            dash.dependencies.Output("student_designated_professor", "value"),
+            [dash.dependencies.Input("student_school_list", "value"),
+             dash.dependencies.Input("student_department_list", "value")]
+        )(self._update_student_designated_professor_name)
+
+        self._app.callback(
+            dash.dependencies.Output("student_designated_professor_name", "children"),
+            dash.dependencies.Output("student_designated_professor_score", "children"),
+            dash.dependencies.Output("student_designated_professor_difficulty", "children"),
+            [dash.dependencies.Input("student_school_list", "value"),
+             dash.dependencies.Input("student_department_list", "value"),
+             dash.dependencies.Input("student_designated_professor", "value")]
+        )(self._update_student_designated_professor_overview)
+
+    def _update_student_department_list(self, school_name):
+        df = self._data_handler.get_data_frame_original
+        department_list = df[df["school_name"] == school_name]["department_name"].unique()
+        option_list = [{"label": element, "value": element} for element in department_list]
+        value = department_list[0]
+
+        return option_list, value
+
+    def _update_student_designated_professor_name(self, school_name, department_name):
+        df = self._data_handler.get_data_frame_original
+        professor_list = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)]["professor_name"].unique()
+        option_list = [{"label": element, "value": element} for element in professor_list]
+        value = professor_list[0]
+
+        return option_list, value
+
+    def _update_student_designated_professor_overview(self, school_name, department_name, professor_name):
+        df = self._data_handler.get_data_frame_original
+        df = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)]
+        df = df[["professor_name", "student_star", "student_difficult"]].groupby("professor_name").mean()
+
+        return professor_name, df.loc[professor_name, "student_star"], df.loc[professor_name, "student_difficult"]
 
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
         return [color.hex for color in list(Color(c_from).range_to(Color(c_to), steps))]
+
+    def _get_matched_score(self, professor_id, willing_list, unwilling_list):
+        df = self._data_handler.get_data_frame_original
+
+        return
 
     def run_server(self):
         self._app.run_server(debug=True)
