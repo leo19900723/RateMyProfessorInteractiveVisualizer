@@ -1,4 +1,5 @@
 import json
+import collections
 
 import pandas as pd
 import dash
@@ -50,14 +51,14 @@ class DataVisualizer(object):
         external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
         mapbox_info_file_path = "assets/mapbox_info.json"
 
-        # with open(mapbox_info_file_path) as mapbox_info_file:
-        #     mapbox_info_dict = json.load(mapbox_info_file)
+        with open(mapbox_info_file_path) as mapbox_info_file:
+            mapbox_info_dict = json.load(mapbox_info_file)
 
         return DataVisualizer(
             data_handler=DataHandler.construct_from_csv(path),
             app=dash.Dash(__name__, external_stylesheets=external_stylesheets),
-            mapbox_token=None,
-            mapbox_style=None
+            mapbox_token=mapbox_info_dict["mapbox_token"],
+            mapbox_style=mapbox_info_dict["mapbox_style"]["UCDavis_289H_Project2_Dark"]
         )
 
     def set_layout(self):
@@ -128,6 +129,7 @@ class DataVisualizer(object):
                                 id="student_top_willing_attributes",
                                 options=[{"label": element, "value": element} for element in
                                          self._data_handler.get_attribute_list],
+                                value=self._data_handler.get_attribute_list[:5],
                                 multi=True
                             ),
 
@@ -135,6 +137,7 @@ class DataVisualizer(object):
                                 id="student_top_unwilling_attributes",
                                 options=[{"label": element, "value": element} for element in
                                          self._data_handler.get_attribute_list],
+                                value=self._data_handler.get_attribute_list[6:8],
                                 multi=True
                             )
                         ]
@@ -226,7 +229,6 @@ class DataVisualizer(object):
         ])
 
     def callback(self):
-
         self._app.callback(
             dash.dependencies.Output("student_department_list", "options"),
             dash.dependencies.Output("student_department_list", "value"),
@@ -249,6 +251,15 @@ class DataVisualizer(object):
              dash.dependencies.Input("student_designated_professor", "value")]
         )(self._update_student_designated_professor_overview)
 
+        self._app.callback(
+            dash.dependencies.Output("screen11_top_match_score", "children"),
+            [dash.dependencies.Input("student_school_list", "value"),
+             dash.dependencies.Input("student_department_list", "value"),
+             dash.dependencies.Input("student_designated_professor", "value"),
+             dash.dependencies.Input("student_top_willing_attributes", "value"),
+             dash.dependencies.Input("student_top_unwilling_attributes", "value")]
+        )(self._update_screen11_top_match_score)
+
     def _update_student_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
         department_list = df[df["school_name"] == school_name]["department_name"].unique()
@@ -259,7 +270,8 @@ class DataVisualizer(object):
 
     def _update_student_designated_professor_name(self, school_name, department_name):
         df = self._data_handler.get_data_frame_original
-        professor_list = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)]["professor_name"].unique()
+        professor_list = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)][
+            "professor_name"].unique()
         option_list = [{"label": element, "value": element} for element in professor_list]
         value = professor_list[0]
 
@@ -272,14 +284,36 @@ class DataVisualizer(object):
 
         return professor_name, df.loc[professor_name, "student_star"], df.loc[professor_name, "student_difficult"]
 
+    def _update_screen11_top_match_score(self, school_name, department_name, professor_name, willing_list, unwilling_list):
+        professor_id = school_name + department_name + professor_name
+        return self._get_matched_score(professor_id, willing_list, unwilling_list)
+
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
         return [color.hex for color in list(Color(c_from).range_to(Color(c_to), steps))]
 
     def _get_matched_score(self, professor_id, willing_list, unwilling_list):
         df = self._data_handler.get_data_frame_original
+        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
+        df = df["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
+        professor_score_dict = dict(zip(df.loc[professor_id][0], df.loc[professor_id][1].astype("int32")))
 
-        return
+        max_attribute_score = max(len(willing_list), len(unwilling_list))
+
+        willing_dict = collections.Counter(
+            dict(zip(willing_list, range(max_attribute_score, max_attribute_score - len(willing_list), -1))))
+
+        unwilling_dict = collections.Counter(
+            dict(zip(unwilling_list, range(max_attribute_score, max_attribute_score - len(unwilling_list), -1))))
+
+        actual_score = sum([professor_score_dict[key] * willing_dict[key] for key in professor_score_dict.keys()]) - \
+                       sum([professor_score_dict[key] * unwilling_dict[key] for key in professor_score_dict.keys()])
+
+        professor_score_list = sorted(professor_score_dict.values(), reverse=True)
+        willing_score_list = range(max_attribute_score, max_attribute_score - len(willing_list), -1)
+        max_score = sum([willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in range(len(willing_score_list))])
+
+        return actual_score / max_score
 
     def run_server(self):
         self._app.run_server(debug=True)

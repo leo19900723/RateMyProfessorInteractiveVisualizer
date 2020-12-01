@@ -12,7 +12,27 @@ class DataHandler(object):
         self._data_frame_original = data_frame
         self._data_frame_last_update = None
 
-        self._attribute_list = {"gives_good_feedback", "caring", "respected", "participation_matters", "clear_grading_criteria", "skip_class", "amazing_lectures", "inspirational", "tough_grader", "hilarious", "get_ready_to_read", "lots_of_homework", "accessible_outside_class", "lecture_heavy", "extra_credit", "graded_by_few_things", "group_projects", "test_heavy", "so_many_papers", "beware_of_pop_quizzes", "IsCourseOnline"}
+        self._attribute_list = ['Hilarious',
+                                'GROUP PROJECTS',
+                                'Gives good feedback',
+                                'Participation matters',
+                                'Respected',
+                                'Caring',
+                                "Skip class? You won\\'t pass.",
+                                'Tough Grader',
+                                'GRADED BY FEW THINGS',
+                                'Amazing lectures',
+                                'Get ready to read',
+                                'Clear grading criteria',
+                                'LECTURE HEAVY',
+                                'Inspirational',
+                                'TEST HEAVY',
+                                'LOTS OF HOMEWORK',
+                                'BEWARE OF POP QUIZZES',
+                                'EXTRA CREDIT',
+                                'SO MANY PAPERS',
+                                'ACCESSIBLE OUTSIDE CLASS']
+
         self._school_list = self._data_frame_original["school_name"].unique()
         self._professor_list = self._data_frame_original["professor_name"].unique()
 
@@ -31,7 +51,9 @@ class DataHandler(object):
         self._data_frame_last_update = self._data_frame_original.replace(to_replace="", value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
 
-        self._data_frame_last_update["professor_id"] = self._data_frame_last_update["school_name"] + self._data_frame_last_update["department_name"] + self._data_frame_last_update["professor_name"]
+        self._data_frame_last_update["professor_id"] = self._data_frame_last_update["school_name"] + \
+                                                       self._data_frame_last_update["department_name"] + \
+                                                       self._data_frame_last_update["professor_name"]
 
         # Apply changes to original data_frame
         self.apply_last_update()
