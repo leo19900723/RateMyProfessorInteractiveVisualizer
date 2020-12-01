@@ -104,6 +104,7 @@ class DataVisualizer(object):
                     html.Div(
                         id="screen10",
                         children=[
+                            html.H3(children="Select Student's School"),
                             dcc.Dropdown(
                                 id="student_school_list",
                                 options=[{"label": element, "value": element} for element in
@@ -112,11 +113,13 @@ class DataVisualizer(object):
                                 multi=False
                             ),
 
+                            html.H3(children="Select Student's Department"),
                             dcc.Dropdown(
                                 id="student_department_list",
                                 multi=False
                             ),
 
+                            html.H3(children="Select Designated Professor"),
                             dcc.Dropdown(
                                 id="student_designated_professor",
                                 options=[{"label": element, "value": element} for element in
@@ -125,6 +128,7 @@ class DataVisualizer(object):
                                 multi=False
                             ),
 
+                            html.H3(children="Select Willing Attributes Students Care Most"),
                             dcc.Dropdown(
                                 id="student_top_willing_attributes",
                                 options=[{"label": element, "value": element} for element in
@@ -133,6 +137,7 @@ class DataVisualizer(object):
                                 multi=True
                             ),
 
+                            html.H3(children="Select Unwilling Attributes Students Aware Most"),
                             dcc.Dropdown(
                                 id="student_top_unwilling_attributes",
                                 options=[{"label": element, "value": element} for element in
@@ -260,6 +265,12 @@ class DataVisualizer(object):
              dash.dependencies.Input("student_top_unwilling_attributes", "value")]
         )(self._update_screen11_top_match_score)
 
+        self._app.callback(
+            dash.dependencies.Output("bar_matched_professors", "figure"),
+            [dash.dependencies.Input("student_top_willing_attributes", "value"),
+             dash.dependencies.Input("student_top_unwilling_attributes", "value")]
+        )(self._update_bar_matched_professors)
+
     def _update_student_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
         department_list = df[df["school_name"] == school_name]["department_name"].unique()
@@ -287,6 +298,16 @@ class DataVisualizer(object):
     def _update_screen11_top_match_score(self, school_name, department_name, professor_name, willing_list, unwilling_list):
         professor_id = school_name + department_name + professor_name
         return self._get_matched_score(professor_id, willing_list, unwilling_list)
+
+    def _update_bar_matched_professors(self, willing_list, unwilling_list):
+        df = self._data_handler.get_data_frame_original
+        df = df[["professor_id", "professor_name"]].drop_duplicates()
+        df["matched_score"] = df.apply(lambda x: self._get_matched_score(x["professor_id"], willing_list, unwilling_list), axis=1)
+
+        df = df.sort_values(by="matched_score", ascending=False)
+
+        fig = px.bar(data_frame=df, x="professor_name", y="matched_score")
+        return fig
 
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
