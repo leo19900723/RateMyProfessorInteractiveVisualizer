@@ -12,29 +12,10 @@ class DataHandler(object):
         self._data_frame_original = data_frame
         self._data_frame_last_update = None
 
-        self._attribute_list = ['Hilarious',
-                                'GROUP PROJECTS',
-                                'Gives good feedback',
-                                'Participation matters',
-                                'Respected',
-                                'Caring',
-                                "Skip class? You won\\'t pass.",
-                                'Tough Grader',
-                                'GRADED BY FEW THINGS',
-                                'Amazing lectures',
-                                'Get ready to read',
-                                'Clear grading criteria',
-                                'LECTURE HEAVY',
-                                'Inspirational',
-                                'TEST HEAVY',
-                                'LOTS OF HOMEWORK',
-                                'BEWARE OF POP QUIZZES',
-                                'EXTRA CREDIT',
-                                'SO MANY PAPERS',
-                                'ACCESSIBLE OUTSIDE CLASS']
+        self._professor_tag_list = None
+        self._all_tag_list = None
 
         self._school_list = self._data_frame_original["school_name"].unique()
-        self._professor_list = self._data_frame_original["professor_name"].unique()
 
         self.preprocess_data()
 
@@ -51,9 +32,16 @@ class DataHandler(object):
         self._data_frame_last_update = self._data_frame_original.replace(to_replace="", value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
 
+        # Create professor_id
         self._data_frame_last_update["professor_id"] = self._data_frame_last_update["school_name"] + \
                                                        self._data_frame_last_update["department_name"] + \
                                                        self._data_frame_last_update["professor_name"]
+
+        # Calculate professor tag list & all tags
+        df = self._data_frame_last_update.copy()
+        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
+        self._professor_tag_list = df["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
+        self._all_tag_list = list(self._professor_tag_list[0].unique())
 
         # Apply changes to original data_frame
         self.apply_last_update()
@@ -109,20 +97,16 @@ class DataHandler(object):
         return self._data_frame_last_update
 
     @property
-    def get_attribute_list(self):
-        return self._attribute_list
+    def get_professor_tag_list(self):
+        return self._professor_tag_list
+
+    @property
+    def get_all_tag_list(self):
+        return self._all_tag_list
 
     @property
     def get_school_list(self):
         return self._school_list
-
-    @property
-    def get_department_list(self):
-        return self._department_list
-
-    @property
-    def get_professor_list(self):
-        return self._professor_list
 
 
 def unit_test():

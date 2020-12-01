@@ -129,8 +129,8 @@ class DataVisualizer(object):
                             dcc.Dropdown(
                                 id="student_top_willing_attributes",
                                 options=[{"label": element, "value": element} for element in
-                                         self._data_handler.get_attribute_list],
-                                value=self._data_handler.get_attribute_list[:5],
+                                         self._data_handler.get_all_tag_list],
+                                value=self._data_handler.get_all_tag_list[:5],
                                 multi=True
                             ),
 
@@ -138,8 +138,8 @@ class DataVisualizer(object):
                             dcc.Dropdown(
                                 id="student_top_unwilling_attributes",
                                 options=[{"label": element, "value": element} for element in
-                                         self._data_handler.get_attribute_list],
-                                value=self._data_handler.get_attribute_list[6:8],
+                                         self._data_handler.get_all_tag_list],
+                                value=self._data_handler.get_all_tag_list[6:8],
                                 multi=True
                             )
                         ]
@@ -347,24 +347,22 @@ class DataVisualizer(object):
         return [color.hex for color in list(Color(c_from).range_to(Color(c_to), steps))]
 
     def _get_matched_score(self, professor_id, willing_list, unwilling_list):
-        df = self._data_handler.get_data_frame_original
-        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
-        df = df.loc[[professor_id]]["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
+        df = self._data_handler.get_professor_tag_list.loc[[professor_id]]
         professor_score_dict = dict(zip(df.loc[professor_id][0], df.loc[professor_id][1].astype("int32")))
 
         max_attribute_score = max(len(willing_list), len(unwilling_list))
 
-        willing_dict = collections.Counter(
-            dict(zip(willing_list, range(max_attribute_score, max_attribute_score - len(willing_list), -1))))
+        willing_score_list = range(max_attribute_score, max_attribute_score - len(willing_list), -1)
+        willing_dict = collections.Counter(dict(zip(willing_list, willing_score_list)))
 
-        unwilling_dict = collections.Counter(
-            dict(zip(unwilling_list, range(max_attribute_score, max_attribute_score - len(unwilling_list), -1))))
+        unwilling_score_list = range(max_attribute_score, max_attribute_score - len(unwilling_list), -1)
+        unwilling_dict = collections.Counter(dict(zip(unwilling_list, unwilling_score_list)))
 
         actual_score = sum([professor_score_dict[key] * willing_dict[key] for key in professor_score_dict.keys()]) - \
                        sum([professor_score_dict[key] * unwilling_dict[key] for key in professor_score_dict.keys()])
 
         professor_score_list = sorted(professor_score_dict.values(), reverse=True)
-        willing_score_list = range(max_attribute_score, max_attribute_score - len(willing_list), -1)
+
         max_score = sum(
             [willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in
              range(len(willing_score_list))])
@@ -373,12 +371,10 @@ class DataVisualizer(object):
 
     def _update_prof_top_willing_attributes(self, school_name, department_name, professor_name):
         professor_id = school_name + department_name + professor_name
+        df = self._data_handler.get_professor_tag_list.loc[[professor_id]]
 
-        df = self._data_handler.get_data_frame_original
-        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
-        df = df.loc[[professor_id]]["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
         value_list = list(df[0])
-        option_list = [{"label": element, "value": element} for element in self._data_handler.get_attribute_list]
+        option_list = [{"label": element, "value": element} for element in self._data_handler.get_all_tag_list]
 
         return option_list, value_list
 
