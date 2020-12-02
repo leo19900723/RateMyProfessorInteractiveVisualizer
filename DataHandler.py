@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -14,8 +15,12 @@ class DataHandler(object):
 
         self._professor_tag_list = None
         self._all_tag_list = None
-
+        self._professor_tag_one_hot_vector = None
         self._school_list = self._data_frame_original["school_name"].unique()
+
+        self._numeric_cols = ["star_rating", "diff_index", "num_student", "student_star", "student_difficult", "word_comment", "asian", "hispanic", "nh_black", "nh_white"]
+
+        self._clustering_model = None
 
         self.preprocess_data()
 
@@ -24,12 +29,13 @@ class DataHandler(object):
         return DataHandler(data_frame=pd.read_csv(path, encoding="ISO-8859-1"))
 
     def preprocess_data(self):
+        mlb = MultiLabelBinarizer()
         clean_list = [
             "tag_professor"
         ]
 
-        # clean
-        self._data_frame_last_update = self._data_frame_original.replace(to_replace="", value=np.nan)
+        # Clean
+        self._data_frame_last_update = self._data_frame_original.replace(to_replace=["", "unknown", "NAN"], value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
 
         # Create professor_id
@@ -39,16 +45,27 @@ class DataHandler(object):
 
         # Calculate professor tag list & all tags
         df = self._data_frame_last_update.copy()
-        df = df[["professor_id", "tag_professor"]].drop_duplicates().set_index("professor_id")
+        df = df[["professor_id", "tag_professor", "student_star"]].groupby(["professor_id", "tag_professor"]).mean().reset_index().set_index("professor_id")
+
         self._professor_tag_list = df["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
         self._all_tag_list = list(self._professor_tag_list[0].unique())
+
+        # Calculate one-hot-vector vs student_star
+        dff = self._professor_tag_list.groupby(by=["professor_id"], axis=0)[0].apply(list).reset_index(name="tag_list").set_index("professor_id")
+        self._professor_tag_one_hot_vector = pd.concat([df, pd.DataFrame(mlb.fit_transform(dff["tag_list"]), columns=mlb.classes_, index=dff.index)], axis=1)
+
+        df = df.rename(columns={"student_star": "target_grade"})
+        df = df.round({"target_grade": 0}).astype({"target_grade": "int32"}).astype({"target_grade": "str"})
+
+        self._data_frame_last_update = pd.merge(self._data_frame_last_update, df, on="professor_id")
 
         # Apply changes to original data_frame
         self.apply_last_update()
 
     @staticmethod
-    def get_pca(data_frame, target, num_of_pc):
-        x = StandardScaler().fit_transform(data_frame.loc[:, data_frame.columns != target])
+    def get_pca(data_frame, numeric_cols, target, num_of_pc):
+        x = data_frame.copy()
+        x[numeric_cols] = StandardScaler().fit_transform(data_frame[numeric_cols])
 
         pca = PCA(n_components=num_of_pc)
         principal_components = pca.fit_transform(x)
@@ -57,16 +74,15 @@ class DataHandler(object):
 
         return df_pca, pca.explained_variance_ratio_.sum()
 
-    @staticmethod
-    def get_clustering(data_frame, target, random_state):
+    def get_clustering(self, data_frame, target, random_state):
         x = scale(data_frame.loc[:, data_frame.columns != target])
         y = data_frame[target]
 
-        clustering = KMeans(n_clusters=len(y.unique()), random_state=random_state)
-        clustering.fit(x)
+        self._clustering_model = KMeans(n_clusters=len(y.unique()), random_state=random_state)
+        self._clustering_model.fit(x)
 
         df_clustering = data_frame.copy()
-        df_clustering[target] = clustering.labels_
+        df_clustering[target] = self._clustering_model.labels_
         return df_clustering
 
     def apply_last_update(self):
@@ -105,14 +121,22 @@ class DataHandler(object):
         return self._all_tag_list
 
     @property
+    def get_professor_tag_one_hot_vector(self):
+        return self._professor_tag_one_hot_vector
+
+    @property
     def get_school_list(self):
         return self._school_list
+
+    @property
+    def get_numeric_columns(self):
+        return self._numeric_cols
 
 
 def unit_test():
     path = "dataset/RateMyProfessor_Sample data.csv"
     handler = DataHandler.construct_from_csv(path=path)
-    print(handler.get_data_frame_original)
+    print(handler.get_all_tag_list)
 
 
 if __name__ == "__main__":

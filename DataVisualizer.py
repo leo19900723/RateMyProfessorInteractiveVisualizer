@@ -206,13 +206,47 @@ class DataVisualizer(object):
                                     dcc.Dropdown(
                                         id="prof_top_willing_attributes",
                                         multi=True
-                                    )
+                                    ),
+
+                                    html.H3(children="PCA/ K-Means Feature Columns Picker"),
+                                    dcc.Dropdown(
+                                        id="ml_feature_cols_picker",
+                                        options=[{"label": col, "value": col} for col in
+                                                 self._data_handler.get_numeric_columns],
+                                        value=self._data_handler.get_numeric_columns,
+                                        multi=True
+                                    ),
+
+                                    html.Div(id="side_bar_bottom1_parameters", children=[
+                                        html.Div(id="ml_num_of_pc_frame", children=[
+                                            html.H4(children="Principle Columns"),
+                                            dcc.Input(
+                                                id="ml_num_of_pc_setup",
+                                                type="number",
+                                                min=3,
+                                                value=6
+                                            )
+                                        ]),
+
+                                        html.Div(id="ml_random_state_frame", children=[
+                                            html.H4(children="Random State"),
+                                            dcc.Input(
+                                                id="ml_random_state_setup",
+                                                type="number",
+                                                value=5
+                                            )
+                                        ]),
+                                    ]),
+
+                                    html.Button(id="ml_calc_button_pca_var",
+                                                children=[html.Span("Calculate")],
+                                                n_clicks=self._pca_calc_trial_num),
                                 ]
                             ),
                             html.Div(
                                 id="screen201",
                                 children=[
-                                    "This is NN Prediction!!!!!"
+                                    html.Div(id="NN_result", children="This is NN Prediction!!!!!")
                                 ]
                             )
                         ]
@@ -302,6 +336,16 @@ class DataVisualizer(object):
              dash.dependencies.Input("prof_designated_professor", "value")]
         )(self._update_prof_top_willing_attributes)
 
+        self._app.callback(
+            dash.dependencies.Output("pca", "figure"),
+            dash.dependencies.Output("k-means", "figure"),
+            dash.dependencies.Output("ml_calc_button_pca_var", "children"),
+            [dash.dependencies.Input("ml_calc_button_pca_var", "n_clicks")],
+            [dash.dependencies.State("ml_feature_cols_picker", "value"),
+             dash.dependencies.State("ml_num_of_pc_setup", "value"),
+             dash.dependencies.State("ml_random_state_setup", "value")]
+        )(self._update_pca_clustering_matrix)
+
     def _update_student_prof_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
         department_list = df[df["school_name"] == school_name]["department_name"].unique()
@@ -341,6 +385,65 @@ class DataVisualizer(object):
 
         fig = px.bar(data_frame=df, x="professor_name", y="matched_score")
         return fig
+
+    def _update_pca_clustering_matrix(self, trigger, numeric_cols, num_of_pc, random_state):
+
+        # Wait for input fields initialization.
+        if not (numeric_cols and num_of_pc and random_state):
+            return self._default_plain_fig, self._default_plain_fig
+
+        target_col = "target_grade"
+        encoded_cols = self._data_handler.get_all_tag_list
+        all_focused_cols = numeric_cols + encoded_cols + [target_col]
+        return_list = []
+
+        # Compute PCA
+        df_original = self._data_handler.get_data_frame_original[numeric_cols + [target_col, "professor_id"]]
+        df_ov = self._data_handler.get_professor_tag_one_hot_vector[encoded_cols].reset_index()
+        self._pca_clustering_df["PCA"] = pd.merge(df_original, df_ov, on="professor_id").drop(["professor_id"], axis=1)
+        self._pca_clustering_df["PCA"] = self._pca_clustering_df["PCA"].dropna(subset=all_focused_cols).reset_index()
+
+        self._pca_clustering_df["PCA"], total_var = DataHandler.get_pca(data_frame=self._pca_clustering_df["PCA"],
+                                                                        numeric_cols=numeric_cols,
+                                                                        target=target_col,
+                                                                        num_of_pc=num_of_pc)
+
+        # Compute Clustering by using self._pca_clustering_df["PCA"]
+        self._pca_clustering_df["K-Means Clustering"] = self._data_handler.get_clustering(
+            data_frame=self._pca_clustering_df["PCA"], target=target_col,
+            random_state=random_state)
+
+        # Create Matrix figures - Meta
+        computed_feature_cols = ["P" + str(i + 1) for i in range(num_of_pc)]
+
+        labels = dict(zip(map(str, range(num_of_pc)), computed_feature_cols))
+        labels["color"] = target_col
+
+        # Create Matrix figures
+        for key in self._pca_clustering_df.keys():
+            return_list.append(
+                px.scatter_matrix(
+                    self._pca_clustering_df[key],
+                    color=self._pca_clustering_df[key][target_col],
+                    dimensions=computed_feature_cols,
+                    labels=labels,
+                    template="simple_white"
+                )
+            )
+
+            return_list[-1].update_traces(diagonal_visible=False,
+                                          marker_coloraxis=None)
+
+            return_list[-1].update_layout(autosize=True,
+                                          showlegend=False,
+                                          title=key,
+                                          margin=go.layout.Margin(l=0, r=0, t=50, b=0),
+                                          paper_bgcolor="rgba(0,0,0,0)",
+                                          plot_bgcolor="rgba(0,0,0,0)")
+
+        return_list.append(html.Span(f"Total Explained Variance: {total_var * 100:.2f}%"))
+
+        return tuple(return_list)
 
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
