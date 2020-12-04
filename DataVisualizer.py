@@ -243,14 +243,19 @@ class DataVisualizer(object):
                                                 n_clicks=self._pca_calc_trial_num),
                                 ]
                             ),
+
                             html.Div(
                                 id="screen201",
                                 children=[
-                                    html.Div(id="NN_result", children="This is NN Prediction!!!!!")
+                                    html.Div(id="NN_result", children="This is NN Prediction!!!!!"),
+                                    html.Div(id="pie_nationality_frame", children=[
+                                            dcc.Graph(id="pie_nationality", className="graph"),
+                                        ]),
                                 ]
                             )
                         ]
                     ),
+
                     html.Div(
                         id="screen21",
                         children=[
@@ -345,6 +350,13 @@ class DataVisualizer(object):
              dash.dependencies.State("ml_num_of_pc_setup", "value"),
              dash.dependencies.State("ml_random_state_setup", "value")]
         )(self._update_pca_clustering_matrix)
+
+        self._app.callback(
+            dash.dependencies.Output("pie_nationality", "figure"),
+            [dash.dependencies.Input("prof_school_list", "value"),
+             dash.dependencies.Input("prof_department_list", "value"),
+             dash.dependencies.Input("prof_designated_professor", "value")],
+        )(self._update_pie_nationality)
 
     def _update_student_prof_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
@@ -445,6 +457,19 @@ class DataVisualizer(object):
 
         return tuple(return_list)
 
+    def _update_pie_nationality(self, school_name, department_name, professor_name):
+        professor_id = school_name + department_name + professor_name
+        nationality_list = ["asian", "hispanic", "nh_black", "nh_white"]
+        df = self._data_handler.get_data_frame_original
+
+        df = df[nationality_list + ["professor_id"]]
+        df = df[df["professor_id"] == professor_id].groupby(["professor_id"]).mean().reset_index().drop(["professor_id"], axis=1)
+        df = df.T.reset_index().rename(columns={"index": "nationality", 0: "percentage"})
+
+        fig = px.pie(df, values="percentage", names="nationality")
+
+        return fig
+
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
         return [color.hex for color in list(Color(c_from).range_to(Color(c_to), steps))]
@@ -470,7 +495,7 @@ class DataVisualizer(object):
             [willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in
              range(len(willing_score_list))])
 
-        return actual_score / max_score
+        return (actual_score / max_score + 1) / 2
 
     def _update_prof_top_willing_attributes(self, school_name, department_name, professor_name):
         professor_id = school_name + department_name + professor_name
