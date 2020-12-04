@@ -35,6 +35,7 @@ class DataHandler(object):
         ]
 
         # Clean
+        self._data_frame_original = self._data_frame_original.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
         self._data_frame_last_update = self._data_frame_original.replace(to_replace=["", "unknown", "NAN"], value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
 

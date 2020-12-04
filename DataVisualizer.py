@@ -249,8 +249,8 @@ class DataVisualizer(object):
                                 children=[
                                     html.Div(id="NN_result", children="This is NN Prediction!!!!!"),
                                     html.Div(id="pie_nationality_frame", children=[
-                                            dcc.Graph(id="pie_nationality", className="graph"),
-                                        ]),
+                                        dcc.Graph(id="pie_nationality", className="graph"),
+                                    ]),
                                 ]
                             )
                         ]
@@ -283,6 +283,11 @@ class DataVisualizer(object):
         ])
 
     def callback(self):
+        self._app.callback(
+            dash.dependencies.Output("map_rating_heat_map", "figure"),
+            [dash.dependencies.Input("screen01_bottom", "children")]
+        )(self._update_map_rating_heat_map)
+
         self._app.callback(
             dash.dependencies.Output("student_department_list", "options"),
             dash.dependencies.Output("student_department_list", "value"),
@@ -357,6 +362,27 @@ class DataVisualizer(object):
              dash.dependencies.Input("prof_department_list", "value"),
              dash.dependencies.Input("prof_designated_professor", "value")],
         )(self._update_pie_nationality)
+
+    def _update_map_rating_heat_map(self, trigger):
+        with open("assets/us-states.json") as geojson:
+            states = json.load(geojson)
+
+        df = self._data_handler.get_data_frame_original
+        df = df[["state_name", "student_star"]].groupby("state_name").mean().reset_index()
+
+        fig = px.choropleth_mapbox(df, geojson=states, locations="state_name", color="student_star",
+                                   color_continuous_scale="Viridis",
+                                   range_color=(0, 5),
+                                   center={"lat": 37.0902, "lon": -95.7129},
+                                   zoom=3,
+                                   opacity=0.5
+                                   )
+
+        fig.update_layout(
+            mapbox=dict(accesstoken=self._mapbox_token, style=self._mapbox_style)
+        )
+
+        return fig
 
     def _update_student_prof_department_list(self, school_name):
         df = self._data_handler.get_data_frame_original
@@ -463,7 +489,8 @@ class DataVisualizer(object):
         df = self._data_handler.get_data_frame_original
 
         df = df[nationality_list + ["professor_id"]]
-        df = df[df["professor_id"] == professor_id].groupby(["professor_id"]).mean().reset_index().drop(["professor_id"], axis=1)
+        df = df[df["professor_id"] == professor_id].groupby(["professor_id"]).mean().reset_index().drop(
+            ["professor_id"], axis=1)
         df = df.T.reset_index().rename(columns={"index": "nationality", 0: "percentage"})
 
         fig = px.pie(df, values="percentage", names="nationality")
