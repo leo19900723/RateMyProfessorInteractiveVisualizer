@@ -289,6 +289,11 @@ class DataVisualizer(object):
         )(self._update_map_rating_heat_map)
 
         self._app.callback(
+            dash.dependencies.Output("bar_attributes_freq", "figure"),
+            [dash.dependencies.Input("map_rating_heat_map", "selectedData")]
+        )(self._update_bar_attributes_freq)
+
+        self._app.callback(
             dash.dependencies.Output("student_department_list", "options"),
             dash.dependencies.Output("student_department_list", "value"),
             [dash.dependencies.Input("student_school_list", "value")]
@@ -381,6 +386,23 @@ class DataVisualizer(object):
         fig.update_layout(
             mapbox=dict(accesstoken=self._mapbox_token, style=self._mapbox_style)
         )
+
+        return fig
+
+    def _update_bar_attributes_freq(self, selected_state):
+        df_original = self._data_handler.get_data_frame_original
+        df_ov = self._data_handler.get_professor_tag_one_hot_vector.drop(columns=["tag_professor", "target_grade"]).reset_index()
+
+        if not selected_state or not selected_state["points"]:
+            selected_state = list(df_original["state_name"].unique())
+        else:
+            selected_state = [point["location"] for point in selected_state["points"]]
+
+        state_professor_list = df_original[df_original["state_name"].isin(selected_state)]["professor_id"].unique()
+        df_ov = df_ov[df_ov["professor_id"].isin(state_professor_list)].drop(columns=["professor_id"])
+        df = df_ov.sum().reset_index().rename(columns={"index": "tags", 0: "frequency"}).sort_values(by="frequency", ascending=True)
+
+        fig = px.bar(data_frame=df, x="frequency", y="tags", orientation="h")
 
         return fig
 
