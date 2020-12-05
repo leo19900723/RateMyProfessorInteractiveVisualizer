@@ -1,10 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ribeye+Marrow&display=swap');
+
+
 body {
-    background-color:  #081217;
-    color: #9fa6b7;
+    font-family: 'Ribeye Marrow', cursive;
+    //font-family: "Benton Sans","Benton Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-weight: 100;
+    background-color:  #f5f9fa;
+    color: #4D4D4D;
 }
 
 div {
     vertical-align: top;
+}
+
+H1 {
+    font-family: 'Ribeye Marrow', cursive;
+}
+
+H3 {
+    font-size: 1.2vmax;
+    margin-top: 1vmax;
+    margin-bottom: 1vmax;
 }
 
 #main {
@@ -63,6 +80,7 @@ div {
 }
 
 #screen10 {
+    padding: 2%;
     flex-grow: 1;
     flex-basis: 0;
 
@@ -82,16 +100,49 @@ div {
     flex-grow: 1;
     flex-basis: 0;
 
-    flex-direction: row;
+    display: flex;
+    flex-direction: column;
 }
 
-#screen11_top_overview, #screen11_top_match_score {
+#student_designated_professor_name_frame, #student_designated_professor_info_frame{
     flex-grow: 1;
     flex-basis: 0;
 }
 
-#screen11_bottom {
+#student_designated_professor_info_frame {
+    display: flex;
+    flex-direction: row;
+}
+
+#student_designated_professor_name{
+    text-align: center;
+    font-size: 6.8vmax;
+    font-family: "Dancing Script", cursive;
+    font-weight: 100;
+}
+
+#student_designated_professor_score_frame, #student_designated_professor_difficulty_frame, #screen11_top_match_score_frame {
     flex-grow: 1;
+    flex-basis: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+#student_designated_professor_score, #student_designated_professor_difficulty, #screen11_top_match_score{
+    text-align: center;
+    font-size: 4.3vmax;
+    font-family: 'Ribeye Marrow', cursive;
+}
+
+#student_designated_professor_score_description, #student_designated_professor_difficulty_description, #screen11_top_match_score_description{
+    text-align: center;
+    font-size: 1.5vmax;
+}
+
+
+#screen11_bottom {
+    flex-grow: 2;
     flex-basis: 0;
 
     position: relative;
@@ -105,15 +156,71 @@ div {
     flex-direction: row;
 }
 
-#screen200, #screen201, #screen210, #screen211 {
+#screen200 {
+    padding: 2%;
+
+    flex-grow: 1;
+    flex-basis: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+#screen201 {
+    flex-grow: 3;
+    flex-basis: 0;
+
+    display: flex;
+    flex-direction: row;
+}
+
+#pie_nationality_frame {
     flex-grow: 1;
     flex-basis: 0;
 
     position: relative;
 }
 
-#pie_nationality_frame {
+#NN_result_frame {
+    flex-grow: 1;
+    flex-basis: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#NN_result {
+    text-align: center;
+    font-size: 6.5vmax;
+}
+
+#NN_result_description {
+    text-align: center;
+    font-size: 1.5vmax;
+}
+
+#screen210, #screen211 {
+    min-height: 50vh;
+    flex-grow: 1;
+    flex-basis: 0;
+
     position: relative;
+}
+
+#screen22 {
+    display: flex;
+    flex-direction: row;
+}
+
+#ml_feature_cols_picker_frame, #ml_num_of_pc_frame, #ml_random_state_frame {
+    padding: 1%;
+
+    flex-grow: 1;
+    flex-basis: 0;
+
+    display: flex;
+    flex-direction: column;
 }
 
 .block_style {
@@ -129,5 +236,5 @@ div {
     height: 100%;
     width: 100%;
 
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0);
 }

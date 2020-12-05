@@ -5,7 +5,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import scale
-
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPRegressor
 
 class DataHandler(object):
 
@@ -16,7 +17,7 @@ class DataHandler(object):
         self._professor_tag_list = None
         self._all_tag_list = None
         self._professor_tag_one_hot_vector = None
-        self._school_list = self._data_frame_original["school_name"].unique()
+        self._school_list = None
 
         self._numeric_cols = ["star_rating", "diff_index", "num_student", "student_star", "student_difficult", "word_comment", "asian", "hispanic", "nh_black", "nh_white"]
 
@@ -38,6 +39,7 @@ class DataHandler(object):
         self._data_frame_original = self._data_frame_original.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
         self._data_frame_last_update = self._data_frame_original.replace(to_replace=["", "unknown", "NAN"], value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
+        self._school_list = self._data_frame_last_update["school_name"].unique()
 
         # Create professor_id
         self._data_frame_last_update["professor_id"] = self._data_frame_last_update["school_name"] + \
@@ -85,6 +87,15 @@ class DataHandler(object):
         df_clustering = data_frame.copy()
         df_clustering[target] = self._clustering_model.labels_
         return df_clustering
+
+    def get_nn_prediction(self, X_predict):
+        X = self._professor_tag_one_hot_vector[self._all_tag_list]
+        y = self._professor_tag_one_hot_vector["target_grade"]
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y)
+        regr = MLPRegressor(hidden_layer_sizes=(18, 12, 7), activation="relu", random_state=1, max_iter=300).fit(X_train, y_train)
+
+        return regr.predict(X_predict)
 
     def apply_last_update(self):
         self._data_frame_original = self._data_frame_last_update.copy()

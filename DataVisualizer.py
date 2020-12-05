@@ -58,7 +58,7 @@ class DataVisualizer(object):
             data_handler=DataHandler.construct_from_csv(path),
             app=dash.Dash(__name__, external_stylesheets=external_stylesheets),
             mapbox_token=mapbox_info_dict["mapbox_token"],
-            mapbox_style=mapbox_info_dict["mapbox_style"]["UCDavis_289H_Project2_Dark"]
+            mapbox_style=mapbox_info_dict["mapbox_style"]["UCDavis_289H_Final_Project_Spring"]
         )
 
     def set_layout(self):
@@ -151,15 +151,25 @@ class DataVisualizer(object):
                             html.Div(
                                 id="screen11_top",
                                 children=[
-                                    html.Div(
-                                        id="screen11_top_overview",
-                                        children=[
-                                            html.Div(id="student_designated_professor_name"),
+                                    html.Div(id="student_designated_professor_name_frame", children=[
+                                        html.Div(id="student_designated_professor_name"),
+                                    ]),
+                                    html.Div(id="student_designated_professor_info_frame", children=[
+                                        html.Div(id="student_designated_professor_score_frame", children=[
                                             html.Div(id="student_designated_professor_score"),
-                                            html.Div(id="student_designated_professor_difficulty")
-                                        ]
-                                    ),
-                                    html.Div(id="screen11_top_match_score"),
+                                            html.Div(id="student_designated_professor_score_description", children="Overall Rating")
+                                        ]),
+                                        html.Div(id="student_designated_professor_difficulty_frame", children=[
+                                            html.Div(id="student_designated_professor_difficulty"),
+                                            html.Div(id="student_designated_professor_difficulty_description",
+                                                     children="Level of Difficulty")
+                                        ]),
+                                        html.Div(id="screen11_top_match_score_frame", children=[
+                                            html.Div(id="screen11_top_match_score"),
+                                            html.Div(id="screen11_top_match_score_description",
+                                                     children="Professor Matched Percentage")
+                                        ]),
+                                    ])
                                 ]
                             ),
 
@@ -185,6 +195,7 @@ class DataVisualizer(object):
                             html.Div(
                                 id="screen200",
                                 children=[
+                                    html.H3(children="Select Professor's School"),
                                     dcc.Dropdown(
                                         id="prof_school_list",
                                         options=[{"label": element, "value": element} for element in
@@ -193,63 +204,41 @@ class DataVisualizer(object):
                                         multi=False
                                     ),
 
+                                    html.H3(children="Select Professor's Department"),
                                     dcc.Dropdown(
                                         id="prof_department_list",
                                         multi=False
                                     ),
 
+                                    html.H3(children="Select Designated Professor"),
                                     dcc.Dropdown(
                                         id="prof_designated_professor",
                                         multi=False
                                     ),
 
+                                    html.H3(children="Select Attribute Professor Can Improve"),
                                     dcc.Dropdown(
                                         id="prof_top_willing_attributes",
                                         multi=True
-                                    ),
-
-                                    html.H3(children="PCA/ K-Means Feature Columns Picker"),
-                                    dcc.Dropdown(
-                                        id="ml_feature_cols_picker",
-                                        options=[{"label": col, "value": col} for col in
-                                                 self._data_handler.get_numeric_columns],
-                                        value=self._data_handler.get_numeric_columns,
-                                        multi=True
-                                    ),
-
-                                    html.Div(id="side_bar_bottom1_parameters", children=[
-                                        html.Div(id="ml_num_of_pc_frame", children=[
-                                            html.H4(children="Principle Columns"),
-                                            dcc.Input(
-                                                id="ml_num_of_pc_setup",
-                                                type="number",
-                                                min=3,
-                                                value=6
-                                            )
-                                        ]),
-
-                                        html.Div(id="ml_random_state_frame", children=[
-                                            html.H4(children="Random State"),
-                                            dcc.Input(
-                                                id="ml_random_state_setup",
-                                                type="number",
-                                                value=5
-                                            )
-                                        ]),
-                                    ]),
-
-                                    html.Button(id="ml_calc_button_pca_var",
-                                                children=[html.Span("Calculate")],
-                                                n_clicks=self._pca_calc_trial_num),
+                                    )
                                 ]
                             ),
 
                             html.Div(
                                 id="screen201",
                                 children=[
-                                    html.Div(id="NN_result", children="This is NN Prediction!!!!!"),
+                                    html.Div(id="NN_result_frame", children=[
+                                        html.Div(id="NN_result_frame_center", children=[
+                                            html.Div(id="NN_result"),
+                                            html.Div(id="NN_result_description", children="Your Score")
+                                        ])
+                                    ]),
+
                                     html.Div(id="pie_nationality_frame", children=[
-                                        dcc.Graph(id="pie_nationality", className="graph"),
+                                        dcc.Graph(
+                                            id="pie_nationality",
+                                            figure=self._default_plain_fig,
+                                            className="graph_style"),
                                     ]),
                                 ]
                             )
@@ -276,6 +265,51 @@ class DataVisualizer(object):
                                               className="graph_style")
                                 ]
                             )
+                        ]
+                    ),
+
+                    html.Div(
+                        id="screen22",
+                        children=[
+                            html.Div(
+                                id="ml_feature_cols_picker_frame",
+                                children=[
+                                    html.H3(children="PCA/ K-Means Feature Columns Picker"),
+                                    dcc.Dropdown(
+                                        id="ml_feature_cols_picker",
+                                        options=[{"label": col, "value": col} for col in
+                                                 self._data_handler.get_numeric_columns],
+                                        value=self._data_handler.get_numeric_columns,
+                                        multi=True
+                                    ),
+                                ]
+                            ),
+
+                            html.Div(id="ml_num_of_pc_frame", children=[
+                                html.H3(children="Principle Columns"),
+                                dcc.Input(
+                                    id="ml_num_of_pc_setup",
+                                    type="number",
+                                    min=3,
+                                    value=6
+                                ),
+
+                                html.H3(children="Total Explained Variance Calculation"),
+                                html.Button(id="ml_calc_button_pca_var",
+                                            children=[html.Span("Calculate")],
+                                            n_clicks=self._pca_calc_trial_num),
+                            ]),
+
+                            html.Div(id="ml_random_state_frame", children=[
+                                html.H3(children="Random State"),
+                                dcc.Input(
+                                    id="ml_random_state_setup",
+                                    type="number",
+                                    value=5
+                                ),
+
+                                html.H3(children=self._default_web_credit)
+                            ])
                         ]
                     )
                 ]
@@ -362,6 +396,11 @@ class DataVisualizer(object):
         )(self._update_pca_clustering_matrix)
 
         self._app.callback(
+            dash.dependencies.Output("NN_result", "children"),
+            [dash.dependencies.Input("prof_top_willing_attributes", "value")],
+        )(self._update_nn_result)
+
+        self._app.callback(
             dash.dependencies.Output("pie_nationality", "figure"),
             [dash.dependencies.Input("prof_school_list", "value"),
              dash.dependencies.Input("prof_department_list", "value"),
@@ -376,7 +415,7 @@ class DataVisualizer(object):
         df = df[["state_name", "student_star"]].groupby("state_name").mean().reset_index()
 
         fig = px.choropleth_mapbox(df, geojson=states, locations="state_name", color="student_star",
-                                   color_continuous_scale="Viridis",
+                                   color_continuous_scale="tealgrn",
                                    range_color=(0, 5),
                                    center={"lat": 37.0902, "lon": -95.7129},
                                    zoom=3,
@@ -384,14 +423,18 @@ class DataVisualizer(object):
                                    )
 
         fig.update_layout(
-            mapbox=dict(accesstoken=self._mapbox_token, style=self._mapbox_style)
+            mapbox=dict(accesstoken=self._mapbox_token, style=self._mapbox_style),
+            margin=go.layout.Margin(l=0, r=0, t=0, b=0),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
         )
 
         return fig
 
     def _update_bar_attributes_freq(self, selected_state):
         df_original = self._data_handler.get_data_frame_original
-        df_ov = self._data_handler.get_professor_tag_one_hot_vector.drop(columns=["tag_professor", "target_grade"]).reset_index()
+        df_ov = self._data_handler.get_professor_tag_one_hot_vector.drop(
+            columns=["tag_professor", "target_grade"]).reset_index()
 
         if not selected_state or not selected_state["points"]:
             selected_state = list(df_original["state_name"].unique())
@@ -400,9 +443,22 @@ class DataVisualizer(object):
 
         state_professor_list = df_original[df_original["state_name"].isin(selected_state)]["professor_id"].unique()
         df_ov = df_ov[df_ov["professor_id"].isin(state_professor_list)].drop(columns=["professor_id"])
-        df = df_ov.sum().reset_index().rename(columns={"index": "tags", 0: "frequency"}).sort_values(by="frequency", ascending=True)
+        df = df_ov.sum().reset_index().rename(columns={"index": "tags", 0: "frequency"}).sort_values(by="frequency",
+                                                                                                     ascending=True)
 
         fig = px.bar(data_frame=df, x="frequency", y="tags", orientation="h")
+
+        fig.update_traces(
+            marker_color="#a5e3dc"
+        )
+
+        fig.update_layout(
+            margin=go.layout.Margin(l=10, r=10, t=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font_family="Helvetica",
+            font=dict(size=8)
+        )
 
         return fig
 
@@ -428,7 +484,10 @@ class DataVisualizer(object):
         df = df[(df["school_name"] == school_name) & (df["department_name"] == department_name)]
         df = df[["professor_name", "student_star", "student_difficult"]].groupby("professor_name").mean()
 
-        return professor_name, df.loc[professor_name, "student_star"], df.loc[professor_name, "student_difficult"]
+        rating = df.loc[professor_name, "student_star"]
+        difficulty = df.loc[professor_name, "student_difficult"]
+
+        return professor_name, "%.2f" % rating, "%.2f" % difficulty
 
     def _update_screen11_top_match_score(self, school_name, department_name, professor_name, willing_list,
                                          unwilling_list):
@@ -444,6 +503,18 @@ class DataVisualizer(object):
         df = df.sort_values(by="matched_score", ascending=False)
 
         fig = px.bar(data_frame=df, x="professor_name", y="matched_score")
+
+        fig.update_traces(
+            marker_color="#a5e3dc"
+        )
+        fig.update_layout(
+            font_family="Helvetica",
+            font=dict(size=8),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin=go.layout.Margin(l=10, r=10, t=5)
+        )
+
         return fig
 
     def _update_pca_clustering_matrix(self, trigger, numeric_cols, num_of_pc, random_state):
@@ -498,8 +569,10 @@ class DataVisualizer(object):
                                           showlegend=False,
                                           title=key,
                                           margin=go.layout.Margin(l=0, r=0, t=50, b=0),
+                                          font_family="Helvetica",
                                           paper_bgcolor="rgba(0,0,0,0)",
-                                          plot_bgcolor="rgba(0,0,0,0)")
+                                          plot_bgcolor="rgba(0,0,0,0)"
+                                          )
 
         return_list.append(html.Span(f"Total Explained Variance: {total_var * 100:.2f}%"))
 
@@ -515,9 +588,25 @@ class DataVisualizer(object):
             ["professor_id"], axis=1)
         df = df.T.reset_index().rename(columns={"index": "nationality", 0: "percentage"})
 
-        fig = px.pie(df, values="percentage", names="nationality")
+        fig = px.pie(df, values="percentage", names="nationality", color_discrete_sequence=px.colors.sequential.Purpor, title="Evaluated by (Ethnicity Demographic)")
 
+        fig.update_layout(
+            font_family="Helvetica",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
         return fig
+
+    def _update_nn_result(self, selected_attributes):
+        X_predict = pd.DataFrame(dict(
+            zip(self._data_handler.get_all_tag_list, [[0] for _ in range(len(self._data_handler.get_all_tag_list))])))
+
+        for tag in selected_attributes:
+            X_predict.loc[0, tag] = 1
+
+        score = self._data_handler.get_nn_prediction(X_predict)
+
+        return "%.2f" % score
 
     @staticmethod
     def _get_color_scale(steps, c_from, c_to):
@@ -544,7 +633,9 @@ class DataVisualizer(object):
             [willing_score_list[i] * (professor_score_list[i] if i < len(professor_score_list) else 1) for i in
              range(len(willing_score_list))])
 
-        return (actual_score / max_score + 1) / 2
+        final_score = (actual_score / max_score + 1) * 50
+
+        return "%.1f" % final_score + "%"
 
     def _update_prof_top_willing_attributes(self, school_name, department_name, professor_name):
         professor_id = school_name + department_name + professor_name
