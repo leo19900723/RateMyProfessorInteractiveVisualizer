@@ -1,10 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Ribeye+Marrow&display=swap');
 
-
 body {
     font-family: 'Ribeye Marrow', cursive;
-    //font-family: "Benton Sans","Benton Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight: 100;
     background-color:  #f5f9fa;
     color: #4D4D4D;
@@ -25,8 +23,12 @@ H3 {
 }
 
 #main {
-    min-height: 100vh;
-    min-width: 100vw;
+    height: 100vh;
+    width: 100vw;
+
+    scroll-snap-type: y mandatory;
+    overflow: auto;
+
     position: absolute;
     top: 0;
     left: 0;
@@ -36,7 +38,6 @@ H3 {
 }
 
 #screen0, #screen1, #screen2 {
-    scroll-snap-align: start;
     min-height: 100vh;
 
     display: flex;

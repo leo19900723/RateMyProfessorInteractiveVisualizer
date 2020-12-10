@@ -8,6 +8,7 @@ from sklearn.preprocessing import scale
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 
+
 class DataHandler(object):
 
     def __init__(self, data_frame):
@@ -19,7 +20,8 @@ class DataHandler(object):
         self._professor_tag_one_hot_vector = None
         self._school_list = None
 
-        self._numeric_cols = ["star_rating", "diff_index", "num_student", "student_star", "student_difficult", "word_comment", "asian", "hispanic", "nh_black", "nh_white"]
+        self._numeric_cols = ["star_rating", "diff_index", "num_student", "student_star", "student_difficult",
+                              "word_comment", "asian", "hispanic", "nh_black", "nh_white"]
 
         self._clustering_model = None
 
@@ -36,8 +38,10 @@ class DataHandler(object):
         ]
 
         # Clean
-        self._data_frame_original = self._data_frame_original.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-        self._data_frame_last_update = self._data_frame_original.replace(to_replace=["", "unknown", "NAN"], value=np.nan)
+        self._data_frame_original = self._data_frame_original.apply(
+            lambda x: x.str.strip() if x.dtype == "object" else x)
+        self._data_frame_last_update = self._data_frame_original.replace(to_replace=["", "unknown", "NAN"],
+                                                                         value=np.nan)
         self._data_frame_last_update = self._data_frame_last_update.dropna(subset=clean_list).reset_index()
         self._school_list = self._data_frame_last_update["school_name"].unique()
 
@@ -48,15 +52,18 @@ class DataHandler(object):
 
         # Calculate professor tag list & all tags
         df = self._data_frame_last_update.copy()
-        df = df[["professor_id", "tag_professor", "student_star"]].groupby(["professor_id", "tag_professor"]).mean().reset_index().set_index("professor_id")
+        df = df[["professor_id", "tag_professor", "student_star"]].groupby(
+            ["professor_id", "tag_professor"]).mean().reset_index().set_index("professor_id")
         df = df.rename(columns={"student_star": "target_grade"})
 
         self._professor_tag_list = df["tag_professor"].str.extractall(r"(.*?)\s*\((.*?)\)\s*")
         self._all_tag_list = list(self._professor_tag_list[0].unique())
 
         # Calculate one-hot-vector vs student_star
-        dff = self._professor_tag_list.groupby(by=["professor_id"], axis=0)[0].apply(list).reset_index(name="tag_list").set_index("professor_id")
-        self._professor_tag_one_hot_vector = pd.concat([df, pd.DataFrame(mlb.fit_transform(dff["tag_list"]), columns=mlb.classes_, index=dff.index)], axis=1)
+        dff = self._professor_tag_list.groupby(by=["professor_id"], axis=0)[0].apply(list).reset_index(
+            name="tag_list").set_index("professor_id")
+        self._professor_tag_one_hot_vector = pd.concat(
+            [df, pd.DataFrame(mlb.fit_transform(dff["tag_list"]), columns=mlb.classes_, index=dff.index)], axis=1)
 
         df = df.round({"target_grade": 0}).astype({"target_grade": "int32"}).astype({"target_grade": "str"})
 
@@ -93,7 +100,8 @@ class DataHandler(object):
         y = self._professor_tag_one_hot_vector["target_grade"]
 
         X_train, X_test, y_train, y_test = train_test_split(X, y)
-        regr = MLPRegressor(hidden_layer_sizes=(18, 12, 7), activation="relu", random_state=1, max_iter=300).fit(X_train, y_train)
+        regr = MLPRegressor(hidden_layer_sizes=(18, 12, 7), activation="relu", random_state=1, max_iter=300).fit(
+            X_train, y_train)
 
         return regr.predict(X_predict)
 

@@ -7,9 +7,7 @@ import dash_html_components as html
 import plotly.express as px
 import dash_core_components as dcc
 import plotly.graph_objects as go
-import calendar
 
-from plotly.subplots import make_subplots
 from DataHandler import DataHandler
 from colour import Color
 
@@ -157,7 +155,8 @@ class DataVisualizer(object):
                                     html.Div(id="student_designated_professor_info_frame", children=[
                                         html.Div(id="student_designated_professor_score_frame", children=[
                                             html.Div(id="student_designated_professor_score"),
-                                            html.Div(id="student_designated_professor_score_description", children="Overall Rating")
+                                            html.Div(id="student_designated_professor_score_description",
+                                                     children="Overall Rating")
                                         ]),
                                         html.Div(id="student_designated_professor_difficulty_frame", children=[
                                             html.Div(id="student_designated_professor_difficulty"),
@@ -229,7 +228,8 @@ class DataVisualizer(object):
                                 children=[
                                     html.Div(id="NN_result_frame", children=[
                                         html.Div(id="NN_result_frame_center", children=[
-                                            html.Div(id="NN_result_title", children="Predicted Score Based on Chosen Attributes"),
+                                            html.Div(id="NN_result_title",
+                                                     children="Predicted Score Based on Chosen Attributes"),
                                             html.Div(id="NN_result"),
                                             html.Div(id="NN_result_description", children="Your Score")
                                         ])
@@ -589,7 +589,8 @@ class DataVisualizer(object):
             ["professor_id"], axis=1)
         df = df.T.reset_index().rename(columns={"index": "nationality", 0: "percentage"})
 
-        fig = px.pie(df, values="percentage", names="nationality", color_discrete_sequence=px.colors.sequential.Purpor, title="Evaluated by (Ethnicity Demographic)")
+        fig = px.pie(df, values="percentage", names="nationality", color_discrete_sequence=px.colors.sequential.Purpor,
+                     title="Evaluated by (Ethnicity Demographic)")
 
         fig.update_layout(
             font_family="Helvetica",
