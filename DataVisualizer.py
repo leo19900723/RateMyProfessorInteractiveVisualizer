@@ -229,6 +229,7 @@ class DataVisualizer(object):
                                 children=[
                                     html.Div(id="NN_result_frame", children=[
                                         html.Div(id="NN_result_frame_center", children=[
+                                            html.Div(id="NN_result_title", children="Predicted Score Based on Chosen Attributes"),
                                             html.Div(id="NN_result"),
                                             html.Div(id="NN_result_description", children="Your Score")
                                         ])

@@ -190,6 +190,11 @@ H3 {
     justify-content: center;
 }
 
+#NN_result_title {
+    font-family: "Arial";
+    font-size: 14pt;
+}
+
 #NN_result {
     text-align: center;
     font-size: 6.5vmax;
